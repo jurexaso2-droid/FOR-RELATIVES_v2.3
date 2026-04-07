@@ -1,0 +1,372 @@
+--- START OF FILE RELATIVES_V6.4_PRO.html ---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RELATIVES | V6.4 PRO</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gun/sea.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #a29bfe;
+            --secondary: #6c5ce7;
+            --bg: #05050d;
+            --card: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.1);
+            --text: #ffffff;
+            --text-dim: #a0a0b8;
+            --danger: #ff7675;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+        header { 
+            position: fixed; top: 0; width: 100%; height: 70px;
+            background: rgba(5, 5, 13, 0.8); backdrop-filter: blur(20px);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; border-bottom: 1px solid var(--border); z-index: 1000;
+        }
+
+        .sidebar { 
+            position: fixed; left: -300px; top: 0; width: 280px; height: 100%;
+            background: #080815; border-right: 1px solid var(--border);
+            padding: 90px 15px 20px; display: flex; flex-direction: column; gap: 8px;
+            transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 999;
+        }
+        .sidebar.open { left: 0; box-shadow: 20px 0 60px rgba(0,0,0,0.8); }
+
+        .nav-item { 
+            padding: 14px 18px; border-radius: 15px; color: var(--text-dim); 
+            display: flex; align-items: center; gap: 14px; cursor: pointer; transition: 0.2s;
+        }
+        .nav-item.active { background: var(--secondary); color: white; }
+
+        main { height: 100vh; padding-top: 90px; overflow-y: auto; display: flex; flex-direction: column; align-items: center; }
+        .content-width { width: 95%; max-width: 700px; padding-bottom: 120px; }
+
+        .card { background: var(--card); border-radius: 25px; padding: 20px; margin-bottom: 20px; border: 1px solid var(--border); }
+        .post-img { width: 100%; border-radius: 15px; margin-top: 15px; border: 1px solid var(--border); }
+        
+        .avatar { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; background: #111; border: 2px solid var(--border); }
+        .avatar-sm { width: 35px; height: 35px; border-radius: 50%; object-fit: cover; }
+
+        /* Comment System */
+        .comment-section { display: none; margin-top: 15px; background: rgba(0,0,0,0.2); border-radius: 15px; padding: 15px; }
+        .comment-item { margin-bottom: 10px; font-size: 0.85rem; }
+
+        /* DM Header UI */
+        .dm-header-profile { display: flex; align-items: center; gap: 12px; padding-bottom: 15px; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
+
+        /* Chat UI */
+        .chat-container { height: 70vh; display: flex; flex-direction: column; }
+        .msg-bubble { max-width: 80%; padding: 12px 16px; border-radius: 20px; margin-bottom: 10px; line-height: 1.4; }
+        .msg-me { align-self: flex-end; background: var(--secondary); border-bottom-right-radius: 4px; }
+        .msg-them { align-self: flex-start; background: var(--card); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+
+        .btn-p { background: var(--secondary); color: white; border: none; padding: 12px 25px; border-radius: 12px; font-weight: 700; cursor: pointer; }
+        .danger-btn { background: var(--danger); color: white; border: none; padding: 5px 10px; border-radius: 8px; cursor: pointer; font-size: 0.7rem; }
+
+        #mobile-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; z-index: 998; backdrop-filter: blur(5px); }
+        #mobile-overlay.active { display: block; }
+    </style>
+</head>
+<body>
+
+    <div id="authWall" style="position:fixed; inset:0; background:#05050d; z-index:10000; display:flex; align-items:center; justify-content:center;">
+        <div class="card" style="width:90%; max-width:400px; text-align:center;">
+            <h1 style="margin-bottom:20px; color:var(--primary);">RELATIVES</h1>
+            <input type="text" id="username" placeholder="Username" style="width:100%; padding:15px; margin-bottom:10px; border-radius:12px; background:#000; border:1px solid var(--border); color:white;">
+            <input type="password" id="password" placeholder="Password" style="width:100%; padding:15px; margin-bottom:20px; border-radius:12px; background:#000; border:1px solid var(--border); color:white;">
+            <button onclick="handleAuth('signin')" class="btn-p" style="width:100%;">Sign In</button>
+            <p onclick="handleAuth('signup')" style="margin-top:20px; font-size:0.8rem; opacity:0.5; cursor:pointer;">New? Create Account</p>
+        </div>
+    </div>
+
+    <header>
+        <div style="display:flex; align-items:center; gap:20px;">
+            <i class="fas fa-bars" style="font-size:1.5rem; cursor:pointer;" onclick="toggleSidebar()"></i>
+            <span style="font-weight:900; letter-spacing:1px;">RELATIVES</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+            <span id="topName" style="font-size:0.8rem; font-weight:600;"></span>
+            <img id="myAvatar" class="avatar" src="">
+        </div>
+    </header>
+
+    <div id="mobile-overlay" onclick="toggleSidebar()"></div>
+
+    <nav class="sidebar" id="sidebar">
+        <div class="nav-item active" onclick="showPage('home', this)"><i class="fas fa-house"></i> Home</div>
+        <div class="nav-item" onclick="showPage('chat', this)"><i class="fas fa-globe"></i> Global</div>
+        <div class="nav-item" onclick="showPage('dmPage', this)"><i class="fas fa-comment"></i> Messages</div>
+        <div class="nav-item" onclick="showPage('profile', this)"><i class="fas fa-cog"></i> Settings</div>
+        <div class="nav-item" style="opacity: 0.1;" onclick="adminLogin()"><i class="fas fa-lock"></i> Console</div>
+        <div class="nav-item" style="margin-top:auto; color:var(--danger);" onclick="logout()"><i class="fas fa-power-off"></i> Logout</div>
+    </nav>
+
+    <main>
+        <div class="content-width">
+            
+            <!-- Home Feed -->
+            <section id="home" class="page active">
+                <div class="card">
+                    <textarea id="postInput" placeholder="Write text or Image URL..." style="width:100%; background:transparent; border:none; color:white; font-size:1rem; outline:none; min-height:60px;"></textarea>
+                    <button onclick="createPost()" class="btn-p" style="float:right; margin-top:10px;">Post</button>
+                    <div style="clear:both;"></div>
+                </div>
+                <div id="feed"></div>
+            </section>
+
+            <!-- Global Chat -->
+            <section id="chat" class="page" style="display:none;">
+                <div class="card chat-container">
+                    <div id="chatWindow" style="flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column;"></div>
+                    <div style="display:flex; gap:10px; padding-top:10px;">
+                        <input type="text" id="chatInput" placeholder="Message Global..." style="flex:1; background:var(--card); border:1px solid var(--border); color:white; padding:12px; border-radius:12px; outline:none;">
+                        <button onclick="sendChat()" class="btn-p"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Private DMs -->
+            <section id="dmPage" class="page" style="display:none;">
+                <div id="dmContactList" style="display:flex; gap:12px; overflow-x:auto; padding-bottom:15px;"></div>
+                <div class="card chat-container">
+                    <div id="dmHeader" class="dm-header-profile">
+                        <span style="opacity:0.4">Select a Relative to chat</span>
+                    </div>
+                    <div id="dmWindow" style="flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column;"></div>
+                    <div style="display:flex; gap:10px; padding-top:10px;">
+                        <input type="text" id="dmInput" placeholder="Message..." style="flex:1; background:var(--card); border:1px solid var(--border); color:white; padding:12px; border-radius:12px; outline:none;">
+                        <button onclick="sendDM()" class="btn-p"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Profile Settings -->
+            <section id="profile" class="page" style="display:none;">
+                <div class="card" style="text-align:center;">
+                    <img id="profAvatar" src="" style="width:100px; height:100px; border-radius:50%; margin-bottom:20px; border:2px solid var(--secondary);">
+                    <h2 id="profUser"></h2>
+                    <input type="text" id="avatarInput" placeholder="Avatar URL" style="width:100%; padding:15px; background:#000; border:1px solid var(--border); color:white; border-radius:12px; margin:20px 0;">
+                    <button onclick="updateProfile()" class="btn-p" style="width:100%;">Save Changes</button>
+                </div>
+            </section>
+
+            <!-- Admin Registry -->
+            <section id="admin" class="page" style="display:none;">
+                <h2 style="color:#f1c40f; margin-bottom:20px;">Master Registry</h2>
+                <div id="adminUserList"></div>
+            </section>
+
+        </div>
+    </main>
+
+    <script>
+        const gun = Gun(['https://gun-manhattan.herokuapp.com/gun', 'https://peer.wall.org/gun']);
+        const user = gun.user().recall({sessionStorage: true});
+        let currentDMUser = null;
+        let dmSharedSecret = null;
+
+        // Clean Username Helper (Fixes long cryptic text)
+        function cleanName(n) { return (n && n.length < 30) ? n : "Unknown"; }
+
+        // --- Global Profile Sync Logic ---
+        function getAvatar(alias, imgId) {
+            gun.get('rel_v6_registry').get(alias).get('avatar').on(url => {
+                const el = document.getElementById(imgId);
+                if(el) el.src = url || `https://api.dicebear.com/7.x/identicon/svg?seed=${alias}`;
+            });
+        }
+
+        // --- Auth ---
+        function handleAuth(type) {
+            const alias = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            if(!alias || !pass) return;
+            if (type === 'signup') {
+                user.create(alias, pass, (ack) => {
+                    if (ack.err) alert(ack.err);
+                    else {
+                        gun.get('rel_v6_registry').get(alias).put({alias, pass, epub: user._.sea.epub});
+                        handleAuth('signin');
+                    }
+                });
+            } else {
+                user.auth(alias, pass, (ack) => {
+                    if (ack.err) alert("Auth Error");
+                    else location.reload();
+                });
+            }
+        }
+
+        function logout() { user.leave(); location.reload(); }
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('mobile-overlay').classList.toggle('active'); }
+
+        function showPage(id, el) {
+            document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(id).style.display = 'block';
+            if(el.classList) el.classList.add('active');
+            if(window.innerWidth < 800) toggleSidebar();
+        }
+
+        function adminLogin() { if(prompt("Pass:") === "Jurex143") { showPage('admin', document.body); loadAdminData(); } }
+
+        // --- Posts ---
+        function createPost() {
+            const body = document.getElementById('postInput').value;
+            if(body) { gun.get('rel_v6_posts').set({ author: user.is.alias, body, time: Date.now() }); document.getElementById('postInput').value = ''; }
+        }
+
+        function detectImg(text) {
+            const regex = /(https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp))/i;
+            const match = text.match(regex);
+            return match ? `<img src="${match[0]}" class="post-img">` : "";
+        }
+
+        gun.get('rel_v6_posts').map().once((data, id) => {
+            if(!data.body || !data.author || data.author.length > 30) return;
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div style="display:flex; align-items:center; gap:12px; margin-bottom:15px;">
+                    <img class="avatar" id="av-post-${id}" src="">
+                    <div style="font-weight:700;">${cleanName(data.author)}</div>
+                </div>
+                <div>${data.body}</div>
+                ${detectImg(data.body)}
+                <div style="margin-top:15px; border-top:1px solid var(--border); padding-top:10px; display:flex; gap:15px;">
+                    <button onclick="toggleComments('${id}')" style="background:none; border:none; color:var(--primary); font-size:0.8rem; cursor:pointer;"><i class="far fa-comment"></i> Comments</button>
+                </div>
+                <div class="comment-section" id="comments-${id}">
+                    <div id="clist-${id}"></div>
+                    <div style="display:flex; gap:5px; margin-top:10px;">
+                        <input id="ci-${id}" style="flex:1; background:transparent; border:1px solid var(--border); color:white; border-radius:5px; padding:5px;">
+                        <button onclick="addComment('${id}')" class="btn-p" style="padding:5px 10px;">Add</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('feed').prepend(card);
+            getAvatar(data.author, 'av-post-'+id);
+
+            gun.get('rel_v6_posts').get(id).get('comments').map().on((c, cid) => {
+                if(!c.text || document.getElementById('c-'+cid)) return;
+                const div = document.createElement('div');
+                div.id = 'c-'+cid; div.className = 'comment-item';
+                div.innerHTML = `<b style="color:var(--primary)">${cleanName(c.author)}:</b> ${c.text}`;
+                document.getElementById('clist-'+id).appendChild(div);
+            });
+        });
+
+        function toggleComments(id) { const s = document.getElementById('comments-'+id); s.style.display = s.style.display === 'block' ? 'none' : 'block'; }
+        function addComment(id) { const i = document.getElementById('ci-'+id); if(i.value) { gun.get('rel_v6_posts').get(id).get('comments').set({author: user.is.alias, text: i.value}); i.value = ''; } }
+
+        // --- Chat ---
+        function sendChat() { const v = document.getElementById('chatInput').value; if(v) { gun.get('rel_v6_global').set({ author: user.is.alias, text: v }); document.getElementById('chatInput').value = ''; } }
+        gun.get('rel_v6_global').map().once((d, id) => {
+            if(!d.text || !d.author) return;
+            const isMe = d.author === user.is.alias;
+            const b = document.createElement('div');
+            b.className = `msg-bubble ${isMe ? 'msg-me' : 'msg-them'}`;
+            b.innerHTML = `<small style="display:block; font-size:0.6rem; opacity:0.5;">${cleanName(d.author)}</small>${d.text}`;
+            document.getElementById('chatWindow').appendChild(b);
+            document.getElementById('chatWindow').scrollTop = 99999;
+        });
+
+        async function sendDM() {
+            const v = document.getElementById('dmInput').value; if(!v || !dmSharedSecret) return;
+            const encrypted = await SEA.encrypt(v, dmSharedSecret);
+            const path = [user.is.alias, currentDMUser].sort().join('_');
+            gun.get('rel_v6_direct').get(path).set({ from: user.is.alias, data: encrypted });
+            document.getElementById('dmInput').value = '';
+        }
+
+        async function openDM(target) {
+            currentDMUser = target;
+            document.getElementById('dmHeader').innerHTML = `
+                <img class="avatar-sm" id="dm-head-av" src="">
+                <b style="color:var(--primary)">${target}</b>
+            `;
+            getAvatar(target, 'dm-head-av');
+            document.getElementById('dmWindow').innerHTML = '';
+            
+            gun.get('rel_v6_registry').get(target).once(async data => {
+                dmSharedSecret = await SEA.secret(data.epub, user._.sea);
+                const path = [user.is.alias, target].sort().join('_');
+                gun.get('rel_v6_direct').get(path).map().once(async (msg, id) => {
+                    const dec = await SEA.decrypt(msg.data, dmSharedSecret);
+                    if(dec) {
+                        const b = document.createElement('div');
+                        b.className = `msg-bubble ${msg.from === user.is.alias ? 'msg-me' : 'msg-them'}`;
+                        b.innerText = dec;
+                        document.getElementById('dmWindow').appendChild(b);
+                        document.getElementById('dmWindow').scrollTop = 99999;
+                    }
+                });
+            });
+        }
+
+        // --- Admin & Identity ---
+        function updateProfile() {
+            const url = document.getElementById('avatarInput').value;
+            if(url) {
+                user.get('avatar').put(url);
+                gun.get('rel_v6_registry').get(user.is.alias).get('avatar').put(url);
+                alert("Profile Updated Globally.");
+            }
+        }
+
+        function loadContacts() {
+            gun.get('rel_v6_registry').map().once((data) => {
+                if(!data || data.alias === user.is.alias || document.getElementById('cnt-'+data.alias)) return;
+                const div = document.createElement('div');
+                div.id = 'cnt-'+data.alias;
+                div.innerHTML = `<img id="av-cnt-${data.alias}" class="avatar" style="cursor:pointer;" onclick="openDM('${data.alias}')">`;
+                document.getElementById('dmContactList').appendChild(div);
+                getAvatar(data.alias, 'av-cnt-'+data.alias);
+            });
+        }
+
+        function loadAdminData() {
+            gun.get('rel_v6_registry').map().once((data, key) => {
+                if(!data || document.getElementById('adm-'+key)) return;
+                const div = document.createElement('div');
+                div.id = 'adm-'+key; div.className = 'card';
+                div.innerHTML = `
+                    <div style="display:flex; justify-content:space-between;">
+                        <b>${data.alias}</b>
+                        <button class="danger-btn" onclick="deleteUser('${data.alias}')">Erase Node</button>
+                    </div>
+                    <div style="font-family:monospace; color:#f1c40f; margin-top:5px;">Pass: ${data.pass}</div>
+                `;
+                document.getElementById('adminUserList').appendChild(div);
+            });
+        }
+
+        function deleteUser(alias) { if(confirm("Delete User " + alias + "?")) { gun.get('rel_v6_registry').get(alias).put(null); location.reload(); } }
+
+        // --- Session ---
+        user.get('alias').on(name => {
+            if(name) {
+                document.getElementById('authWall').style.display = 'none';
+                document.getElementById('topName').innerText = name;
+                document.getElementById('profUser').innerText = "@" + name;
+                getAvatar(name, 'myAvatar');
+                getAvatar(name, 'profAvatar');
+                loadContacts();
+            }
+        });
+    </script>
+</body>
+</html>
